@@ -16,14 +16,23 @@ const objData = {
     }
 };
 
+let getValue = (value) => {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve(value);
+        }, 2500);
+    })
+};
+
 // Replacer function which just returns non-string type values
-let replacer = (key, value) => {
+let replacer = async (key, value) => {
     if (typeof value === 'object' && value.__type === 'ao1') {
-        value.url = 'https://new.world';
+        value.url = await getValue('https://new.world');
         return value;
     }
     return value;
 };
+
 
 
 

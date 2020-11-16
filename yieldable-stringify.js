@@ -14,6 +14,8 @@
  ***************************************************************************/
 'use strict';
 
+const { default: isPromise } = require("is-promise");
+
 let counter = 0;
 let objStack = [];
 let temp = '';
@@ -95,7 +97,7 @@ let normalize = (string, flagN) => {
  * @return { function } yieldCPU
  */
 
-function * stringifyYield(field, container, replacer, space, intensity) {
+async function* stringifyYield(field, container, replacer, space, intensity) {
   let itr = 0;
   let key = '';
   let val = '';
@@ -118,6 +120,9 @@ function * stringifyYield(field, container, replacer, space, intensity) {
   // Call replacer if one is present (SPEC)
   if (typeof replacer === 'function') {
     value = replacer.call(container, field, value);
+    if (isPromise(value)) {
+      value = await value;
+    }
   }
 
   switch (typeof value) {
@@ -250,28 +255,21 @@ let stringifyWrapper = (value, replacer, space, intensity, callback) => {
     indent = space;
   }
 
-  let yielding;
 
-  // To hold 'stringifyYield' genarator function
-  function * yieldBridge() {
-    yielding = yield *stringifyYield('', {'': value}, replacer, indent, 1);
-  }
-
-  let rs = yieldBridge();
-  let g = rs.next();
+  let rs = stringifyYield('', { '': value }, replacer, indent, 1);
 
   let yieldCPU = () => {
-    setImmediate(() => {
-      g = rs.next();
+    setImmediate(async () => {
+      let g = await rs.next();
       if (g && g.done === true) {
-        // Reinitializing the values at the end of API call
+        // Re-initializing the values at the end of API call
         counter = 0;
         temp = ''
         objStack = [];
-        if (typeof yielding === 'object')
-          return callback(yielding, null);
+        if (typeof g.value === 'object')
+          return callback(g.value, null);
         else
-          return callback(null, yielding);
+          return callback(null, g.value);
       }
       yieldCPU();
     });

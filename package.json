@@ -44,7 +44,10 @@
   "devDependencies": {
     "eslint": "^6.6.0",
     "eslint-config-strongloop": "^2.1.0",
-    "tap": "^10.7.3",
-    "seedrandom": "^2.4.3"
+    "seedrandom": "^2.4.3",
+    "tap": "^10.7.3"
+  },
+  "dependencies": {
+    "is-promise": "^4.0.0"
   }
 }
