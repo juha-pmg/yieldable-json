@@ -120,4 +120,33 @@ module.exports = {
     }
     return ps.stringifyWrapper(data, replacer, space, intensity, callback);
   },
+  /**
+* Error checking  and call of appropriate functions for JSON stringify API
+* @param { primitive data types } data
+* @param { function or array } replacer
+* @param { number or string } space
+* @param { number } intensity
+* @param { function } callback
+* @return { function } stringifyWrapper
+*/
+  stringifyAsyncPromise(data, replacer, space, intensity=1) {
+    const argv = arguments;
+
+    if (argv.length > 2) {
+      let i = 1;
+      if (typeof argv[i] === 'function' || typeof argv[i] === 'object')
+        replacer = argv[i++];
+      if ((typeof argv[i] === 'number' || typeof argv[i] === 'string') &&
+        typeof argv[i++] === 'number')
+        space = validateSpace(argv[i++]);
+      if (typeof argv[i] === 'number')
+        intensity = validateIntensity(argv[i]);
+    }
+    return new Promise((resolve,reject) => ps.stringifyWrapper(data, replacer, space, intensity, (err,value) => {
+      if (err) {
+        reject(err);
+      }
+      resolve(value);
+    }));
+  },
 };
