@@ -129,7 +129,7 @@ module.exports = {
 * @param { function } callback
 * @return { function } stringifyWrapper
 */
-  stringifyAsyncPromise(data, replacer, space, intensity=1) {
+stringifyAsyncPromise(data, replacer, space, intensity=1) {
     const argv = arguments;
 
     if (argv.length > 2) {
@@ -142,11 +142,7 @@ module.exports = {
       if (typeof argv[i] === 'number')
         intensity = validateIntensity(argv[i]);
     }
-    return new Promise((resolve,reject) => ps.stringifyWrapper(data, replacer, space, intensity, (err,value) => {
-      if (err) {
-        reject(err);
-      }
-      resolve(value);
-    }));
+    return ps.stringifyWrapperPromise(data, replacer, space, intensity);
+
   },
 };

@@ -36,8 +36,8 @@ let normalize = (string, flagN) => {
   let retStr = '';
   let transform = '';
   let uc =
-  '/[\\\'\u0000-\u001f\u007f-\u009f\u00ad\u0600-\u0604\u070f\u17b4' +
-  '\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g';
+    '/[\\\'\u0000-\u001f\u007f-\u009f\u00ad\u0600-\u0604\u070f\u17b4' +
+    '\u17b5\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufeff\ufff0-\uffff]/g';
   let unicode = new RegExp(uc);
   // Taking '\\' out of the loop to avoid change in
   // order of execution of object entries resulting
@@ -52,8 +52,8 @@ let normalize = (string, flagN) => {
     '"': '\\"',
   };
   // Escape is implemented globally
-  for(var pattern in escape) {
-    var regex = new RegExp(pattern,'gi')
+  for (var pattern in escape) {
+    var regex = new RegExp(pattern, 'gi')
     string = string.replace(regex, escape[pattern])
   }
   unicode.lastIndex = 0;
@@ -153,81 +153,81 @@ async function* stringifyYield(field, container, replacer, space, intensity) {
       if (!value)
         return 'null';
 
-    // Manage special cases of Arrays and Objects
+      // Manage special cases of Arrays and Objects
       let getResult = (decision) => {
         if (result.length === 0)
           if (decision)
             return '{}';
           else
-          return '[]';
+            return '[]';
         else
-        if (decision)
-          if (space)
-            return '{\n' + space + result.join(',\n' + space) + '\n' + '}';
+          if (decision)
+            if (space)
+              return '{\n' + space + result.join(',\n' + space) + '\n' + '}';
+            else
+              return '{' + result.join(',') + '}';
           else
-            return '{' + result.join(',') + '}';
-        else
-          if (space)
-            return '[\n' + space + result.join(',\n' + space) + '\n' + ']';
-          else
-            return '[' + result.join(',') + ']';
+            if (space)
+              return '[\n' + space + result.join(',\n' + space) + '\n' + ']';
+            else
+              return '[' + result.join(',') + ']';
       };
 
       result = [];
-    // If toJSON is present, invoke it (SPEC)
+      // If toJSON is present, invoke it (SPEC)
       if (value && typeof value.toJSON === 'function') {
         result.push('"' + value.toJSON(field) + '"');
         if (result.length === 0)
           return '{}';
         else
-        if (space)
-          return space + result.join(',\n' + space) + '\n';
-        else
-          return result.join(',');
+          if (space)
+            return space + result.join(',\n' + space) + '\n';
+          else
+            return result.join(',');
       }
-    // Array case
+      // Array case
       if (value && value.constructor === Array) {
         length = value.length;
         for (itr = 0; itr < length; itr += 1) {
           tempVal =
-          yield *stringifyYield(itr, value, replacer, space, intensity) ||
-          'null';
+            yield* stringifyYield(itr, value, replacer, space, intensity) ||
+            'null';
           if (tempVal !== undefined)
             result.push(tempVal);
         }
         return getResult(false);
       }
 
-    // Manage replacing object scenario (SPEC)
+      // Manage replacing object scenario (SPEC)
       if (replacer && typeof replacer === 'object') {
         length = replacer.length;
         for (itr = 0; itr < length; itr += 1) {
           if (typeof replacer[itr] === 'string') {
             key = replacer[itr];
-            val = yield *stringifyYield(key, value, replacer, space, intensity);
+            val = yield* stringifyYield(key, value, replacer, space, intensity);
             if (val !== undefined)
               result.push(normalize(key, 2) + (space
-              ? ': '
-              : ':') + val);
+                ? ': '
+                : ':') + val);
           }
         }
       } else {
-      // Object case
+        // Object case
         objStack.push(value);
         for (key in value) {
           if (typeof value[key] === 'object' && value[key] !== null &&
-          value[key] !== undefined) {
+            value[key] !== undefined) {
             if (objStack.indexOf(value[key]) !== -1) {
               return new StringifyError('Circular Structure Detected');
             } else
-            objStack.push(value[key]);
+              objStack.push(value[key]);
           }
           if (Object.hasOwnProperty.call(value, key)) {
-            val = yield *stringifyYield(key, value, replacer, space, intensity);
+            val = yield* stringifyYield(key, value, replacer, space, intensity);
             if (val !== undefined)
               result.push(normalize(key, 2) + (space
-              ? ': '
-              : ':') + val);
+                ? ': '
+                : ':') + val);
           }
         }
       }
@@ -264,7 +264,7 @@ let stringifyWrapper = (value, replacer, space, intensity, callback) => {
       if (g && g.done === true) {
         // Re-initializing the values at the end of API call
         counter = 0;
-        temp = ''
+        temp = '';
         objStack = [];
         if (typeof g.value === 'object')
           return callback(g.value, null);
@@ -277,4 +277,44 @@ let stringifyWrapper = (value, replacer, space, intensity, callback) => {
   return yieldCPU();
 };
 
+/**
+ * Calling appropriate functions each time.
+ * @param { primitive data types } value
+ * @param { function or array } replacer
+ * @param { number or string } space
+ * @param { number } intensity
+ * @return { function } yieldCPU
+ */
+
+let stringifyWrapperPromise = (value, replacer, space, intensity) => {
+  let indent = '';
+  if (typeof space === 'number') {
+    indent = ' '.repeat(space);
+  } else if (typeof space === 'string') {
+    indent = space;
+  }
+
+
+  let rs = stringifyYield('', { '': value }, replacer, indent, 1);
+
+  let promise = new Promise((resolve, reject) => {
+    let yieldCPU = () => {
+      setImmediate(async () => {
+        let g = await rs.next().catch(error => { return reject(error) });
+        if (g && g.done === true) {
+          // Re-initializing the values at the end of API call
+          counter = 0;
+          temp = '';
+          objStack = [];
+          return resolve(g.value);
+        }
+        yieldCPU();
+      });
+    };
+    yieldCPU();
+  });
+  return promise;
+};
+
 exports.stringifyWrapper = stringifyWrapper;
+exports.stringifyWrapperPromise = stringifyWrapperPromise;
